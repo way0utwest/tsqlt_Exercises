@@ -1,0 +1,14 @@
+SET QUOTED_IDENTIFIER ON
+GO
+SET ANSI_NULLS ON
+GO
+CREATE FUNCTION [dbo].[ComputeDiscount](@amount DECIMAL(10,2))
+RETURNS DECIMAL(10,2)
+AS
+BEGIN
+  RETURN @amount * CASE 
+     WHEN @amount = 200 THEN .85 
+     ELSE .95 
+   END;
+END
+GO
