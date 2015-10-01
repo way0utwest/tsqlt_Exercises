@@ -1,35 +1,52 @@
+
 SET QUOTED_IDENTIFIER ON
 GO
 SET ANSI_NULLS ON
 GO
-
-/*******************************************************************************************/
-/*******************************************************************************************/
-/*******************************************************************************************/
+---BUILD+
 CREATE PROCEDURE [tSQLt].[AssertEqualsTable]
     @Expected NVARCHAR(MAX),
     @Actual NVARCHAR(MAX),
-    @FailMsg NVARCHAR(MAX) = 'unexpected/missing resultset rows!'
+    @Message NVARCHAR(MAX) = NULL,
+    @FailMsg NVARCHAR(MAX) = 'Unexpected/missing resultset rows!'
 AS
 BEGIN
-    DECLARE @TblMsg NVARCHAR(MAX);
-    DECLARE @R INT;
-    DECLARE @ErrorMessage NVARCHAR(MAX);
-    DECLARE @FailureOccurred BIT;
-    SET @FailureOccurred = 0;
 
-    EXEC @FailureOccurred = tSQLt.AssertObjectExists @Actual;
-    IF @FailureOccurred = 1 RETURN 1;
-    EXEC @FailureOccurred = tSQLt.AssertObjectExists @Expected;
-    IF @FailureOccurred = 1 RETURN 1;
+    EXEC tSQLt.AssertObjectExists @Expected;
+    EXEC tSQLt.AssertObjectExists @Actual;
+
+    DECLARE @ResultTable NVARCHAR(MAX);    
+    DECLARE @ResultColumn NVARCHAR(MAX);    
+    DECLARE @ColumnList NVARCHAR(MAX);    
+    DECLARE @UnequalRowsExist INT;
+    DECLARE @CombinedMessage NVARCHAR(MAX);
+
+    SELECT @ResultTable = tSQLt.Private::CreateUniqueObjectName();
+    SELECT @ResultColumn = 'RC_' + @ResultTable;
+
+    EXEC tSQLt.Private_CreateResultTableForCompareTables 
+      @ResultTable = @ResultTable,
+      @ResultColumn = @ResultColumn,
+      @BaseTable = @Expected;
         
-    EXEC @R = tSQLt.TableCompare @Expected, @Actual, @TblMsg OUT;
+    SELECT @ColumnList = tSQLt.Private_GetCommaSeparatedColumnList(@ResultTable, @ResultColumn);
 
-    IF (@R <> 0)
-    BEGIN
-        IF ISNULL(@FailMsg,'')<>'' SET @FailMsg = @FailMsg + CHAR(13) + CHAR(10);
-        EXEC tSQLt.Fail @FailMsg, @TblMsg;
-    END;
+    EXEC tSQLt.Private_ValidateThatAllDataTypesInTableAreSupported @ResultTable, @ColumnList;    
     
+    EXEC @UnequalRowsExist = tSQLt.Private_CompareTables 
+      @Expected = @Expected,
+      @Actual = @Actual,
+      @ResultTable = @ResultTable,
+      @ColumnList = @ColumnList,
+      @MatchIndicatorColumnName = @ResultColumn;
+        
+    SET @CombinedMessage = ISNULL(@Message + CHAR(13) + CHAR(10),'') + @FailMsg;
+    EXEC tSQLt.Private_CompareTablesFailIfUnequalRowsExists 
+      @UnequalRowsExist = @UnequalRowsExist,
+      @ResultTable = @ResultTable,
+      @ResultColumn = @ResultColumn,
+      @ColumnList = @ColumnList,
+      @FailMsg = @CombinedMessage;   
 END;
+---Build-
 GO

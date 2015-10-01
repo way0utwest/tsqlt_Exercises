@@ -1,11 +1,8 @@
+
 SET QUOTED_IDENTIFIER ON
 GO
 SET ANSI_NULLS ON
 GO
-
-----------------------------------------------------------------
----- Below objects need to go back into tSQLt.class.sql     ----
-----------------------------------------------------------------
 
 CREATE FUNCTION [tSQLt].[Private_GetForeignKeyDefinition](
     @SchemaName NVARCHAR(MAX),
@@ -15,31 +12,29 @@ CREATE FUNCTION [tSQLt].[Private_GetForeignKeyDefinition](
 RETURNS TABLE
 AS
 RETURN SELECT 'CONSTRAINT ' + name + ' FOREIGN KEY (' +
-              parCol + ') REFERENCES ' + refName + '(' + refCol + ')' cmd,
+              parCols + ') REFERENCES ' + refName + '(' + refCols + ')' cmd,
               CASE 
                 WHEN RefTableIsFakedInd = 1
-                  THEN 'CREATE UNIQUE INDEX ' + tSQLtPrivate::CreateUniqueObjectName() + ' ON ' + refName + '(' + refCol + ');' 
+                  THEN 'CREATE UNIQUE INDEX ' + tSQLt.Private::CreateUniqueObjectName() + ' ON ' + refName + '(' + refCols + ');' 
                 ELSE '' 
               END CreIdxCmd
-         FROM (SELECT SCHEMA_NAME(k.schema_id) SchemaName,k.name, OBJECT_NAME(k.parent_object_id) parName,
-                      SCHEMA_NAME(refTab.schema_id)+'.'+refTab.name refName,parCol.name parCol,refCol.name refCol,
+         FROM (SELECT QUOTENAME(SCHEMA_NAME(k.schema_id)) AS SchemaName,
+                      QUOTENAME(k.name) AS name,
+                      QUOTENAME(OBJECT_NAME(k.parent_object_id)) AS parName,
+                      QUOTENAME(SCHEMA_NAME(refTab.schema_id)) + '.' + QUOTENAME(refTab.name) AS refName,
+                      parCol.ColNames AS parCols,
+                      refCol.ColNames AS refCols,
                       CASE WHEN e.name IS NULL THEN 0
                            ELSE 1 
                        END AS RefTableIsFakedInd
                  FROM sys.foreign_keys k
-                 JOIN sys.foreign_key_columns c
-                   ON k.object_id = c.constraint_object_id
-                 JOIN sys.columns parCol
-                   ON parCol.object_id = c.parent_object_id
-                  AND parCol.column_id = c.parent_column_id
-                 JOIN sys.columns refCol
-                   ON refCol.object_id = c.referenced_object_id
-                  AND refCol.column_id = c.referenced_column_id
+                 CROSS APPLY tSQLt.Private_GetForeignKeyParColumns(k.object_id) AS parCol
+                 CROSS APPLY tSQLt.Private_GetForeignKeyRefColumns(k.object_id) AS refCol
                  LEFT JOIN sys.extended_properties e
                    ON e.name = 'tSQLt.FakeTable_OrgTableName'
-                  AND e.value = OBJECT_NAME(c.referenced_object_id)
+                  AND e.value = OBJECT_NAME(k.referenced_object_id)
                  JOIN sys.tables refTab
-                   ON COALESCE(e.major_id,refCol.object_id) = refTab.object_id
+                   ON COALESCE(e.major_id,k.referenced_object_id) = refTab.object_id
                 WHERE k.parent_object_id = OBJECT_ID(@SchemaName + '.' + @ParentTableName)
                   AND k.object_id = OBJECT_ID(@SchemaName + '.' + @ForeignKeyName)
                )x;

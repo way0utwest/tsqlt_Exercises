@@ -1,3 +1,4 @@
+
 SET QUOTED_IDENTIFIER ON
 GO
 SET ANSI_NULLS ON
@@ -11,9 +12,8 @@ BEGIN
     
   DECLARE viewNames CURSOR LOCAL FAST_FORWARD FOR
   SELECT QUOTENAME(OBJECT_SCHEMA_NAME(object_id)) + '.' + QUOTENAME([name]) AS viewName
-    FROM sys.objects
-   WHERE type = 'V'
-     AND schema_id = SCHEMA_ID(@SchemaName);
+    FROM sys.views
+   WHERE schema_id = SCHEMA_ID(@SchemaName);
   
   OPEN viewNames;
   

@@ -1,7 +1,10 @@
+
 SET QUOTED_IDENTIFIER ON
 GO
 SET ANSI_NULLS ON
 GO
+
+
 
 CREATE PROCEDURE [tSQLt].[SetTestResultFormatter]
     @Formatter NVARCHAR(4000)
@@ -13,7 +16,7 @@ BEGIN
                                     @level0type = 'SCHEMA',
                                     @level0name = 'tSQLt',
                                     @level1type = 'PROCEDURE',
-                                    @level1name = 'RunTestClassSummary';
+                                    @level1name = 'Private_OutputTestResults';
     END;
 
     EXEC sp_addextendedproperty @name = N'tSQLt.ResultsFormatter', 
@@ -21,6 +24,6 @@ BEGIN
                                 @level0type = 'SCHEMA',
                                 @level0name = 'tSQLt',
                                 @level1type = 'PROCEDURE',
-                                @level1name = 'RunTestClassSummary';
+                                @level1name = 'Private_OutputTestResults';
 END;
 GO

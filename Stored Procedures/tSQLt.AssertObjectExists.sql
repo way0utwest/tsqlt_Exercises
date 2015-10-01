@@ -1,8 +1,9 @@
+
 SET QUOTED_IDENTIFIER ON
 GO
 SET ANSI_NULLS ON
 GO
-
+---Build+
 CREATE PROCEDURE [tSQLt].[AssertObjectExists]
     @ObjectName NVARCHAR(MAX),
     @Message NVARCHAR(MAX) = ''
@@ -29,4 +30,5 @@ BEGIN
     END;
     RETURN 0;
 END;
+---Build-
 GO

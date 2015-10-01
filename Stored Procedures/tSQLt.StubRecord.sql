@@ -1,3 +1,4 @@
+
 SET QUOTED_IDENTIFIER ON
 GO
 SET ANSI_NULLS ON
@@ -5,6 +6,9 @@ GO
 CREATE PROCEDURE [tSQLt].[StubRecord](@SnTableName AS NVARCHAR(MAX), @BintObjId AS BIGINT)  
 AS   
 BEGIN  
+
+    RAISERROR('Warning, tSQLt.StubRecord is not currently supported. Use at your own risk!', 0, 1) WITH NOWAIT;
+
     DECLARE @VcInsertStmt NVARCHAR(MAX),  
             @VcInsertValues NVARCHAR(MAX);  
     DECLARE @SnColumnName NVARCHAR(MAX); 

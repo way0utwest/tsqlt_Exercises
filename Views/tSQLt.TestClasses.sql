@@ -3,9 +3,10 @@ GO
 SET ANSI_NULLS ON
 GO
 
-CREATE VIEW [tSQLt].[Private_TestClasses]
+----------------------------------------------------------------------
+CREATE VIEW [tSQLt].[TestClasses]
 AS
-  SELECT DISTINCT s.name AS testClassName, s.schema_id
+  SELECT s.name AS Name, s.schema_id AS SchemaId
     FROM sys.extended_properties ep
     JOIN sys.schemas s
       ON ep.major_id = s.schema_id

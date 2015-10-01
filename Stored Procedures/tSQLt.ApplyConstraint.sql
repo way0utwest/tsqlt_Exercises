@@ -1,62 +1,41 @@
+
 SET QUOTED_IDENTIFIER ON
 GO
 SET ANSI_NULLS ON
 GO
-/*******************************************************************************************/
-/*******************************************************************************************/
-/*******************************************************************************************/
 
 CREATE PROCEDURE [tSQLt].[ApplyConstraint]
-       @SchemaName NVARCHAR(MAX),
        @TableName NVARCHAR(MAX),
-       @ConstraintName NVARCHAR(MAX)
+       @ConstraintName NVARCHAR(MAX),
+       @SchemaName NVARCHAR(MAX) = NULL --parameter preserved for backward compatibility. Do not use. Will be removed soon.
 AS
 BEGIN
-  DECLARE @OrgTableName NVARCHAR(MAX);
-  DECLARE @Cmd NVARCHAR(MAX);
+  DECLARE @ConstraintType NVARCHAR(MAX);
+  DECLARE @ConstraintObjectId INT;
+  
+  SELECT @ConstraintType = ConstraintType, @ConstraintObjectId = ConstraintObjectId
+    FROM tSQLt.Private_ResolveApplyConstraintParameters (@TableName, @ConstraintName, @SchemaName);
 
-  SELECT @OrgTableName = CAST(value AS NVARCHAR(4000))
-    FROM sys.extended_properties
-   WHERE class_desc = 'OBJECT_OR_COLUMN'
-     AND major_id = OBJECT_ID(@SchemaName + '.' + @TableName)
-     AND minor_id = 0
-     AND name = 'tSQLt.FakeTable_OrgTableName';
-
-  SELECT @Cmd = 'CONSTRAINT ' + name + ' CHECK' + definition 
-    FROM sys.check_constraints
-   WHERE object_id = OBJECT_ID(@SchemaName + '.' + @ConstraintName)
-     AND parent_object_id = OBJECT_ID(@SchemaName + '.' + @OrgTableName);
-
-  IF @Cmd IS NOT NULL
+  IF @ConstraintType = 'CHECK_CONSTRAINT'
   BEGIN
-     EXEC tSQLt.Private_RenameObjectToUniqueName @SchemaName, @ConstraintName;
-     SELECT @Cmd = 'ALTER TABLE ' + @SchemaName + '.' + @TableName + ' ADD ' + @Cmd;
-
-     EXEC (@Cmd);
+    EXEC tSQLt.Private_ApplyCheckConstraint @ConstraintObjectId;
+    RETURN 0;
   END
-  ELSE
+
+  IF @ConstraintType = 'FOREIGN_KEY_CONSTRAINT'
   BEGIN
-     DECLARE @CreateIndexCmd NVARCHAR(MAX);
-     SELECT @Cmd = cmd ,@CreateIndexCmd = CreIdxCmd
-       FROM tSQLt.Private_GetForeignKeyDefinition(@SchemaName, @OrgTableName, @ConstraintName);
-
-     IF @Cmd IS NOT NULL
-     BEGIN
-        EXEC tSQLt.Private_RenameObjectToUniqueName @SchemaName, @ConstraintName;
-        SELECT @Cmd = @CreateIndexCmd + 'ALTER TABLE ' + @SchemaName + '.' + @TableName + ' ADD ' + @Cmd;
-
-        EXEC (@Cmd);
-     END
-     ELSE
-     BEGIN
-        DECLARE @ErrorMessage NVARCHAR(MAX);
-        SET @ErrorMessage = '''' + @SchemaName + '.' + @ConstraintName + 
-            ''' is not a valid constraint on table ''' + @SchemaName + '.' + @TableName + 
-            ''' for the tSQLt.ApplyConstraint procedure';
-        RAISERROR (@ErrorMessage, 16, 10);
-     END;
-  END;
-
+    EXEC tSQLt.Private_ApplyForeignKeyConstraint @ConstraintObjectId;
+    RETURN 0;
+  END;  
+   
+  IF @ConstraintType IN('UNIQUE_CONSTRAINT', 'PRIMARY_KEY_CONSTRAINT')
+  BEGIN
+    EXEC tSQLt.Private_ApplyUniqueConstraint @ConstraintObjectId;
+    RETURN 0;
+  END;  
+   
+  RAISERROR ('ApplyConstraint could not resolve the object names, ''%s'', ''%s''. Be sure to call ApplyConstraint and pass in two parameters, such as: EXEC tSQLt.ApplyConstraint ''MySchema.MyTable'', ''MyConstraint''', 
+             16, 10, @TableName, @ConstraintName);
   RETURN 0;
 END;
 GO

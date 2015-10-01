@@ -1,3 +1,4 @@
+
 SET QUOTED_IDENTIFIER ON
 GO
 SET ANSI_NULLS ON
@@ -14,11 +15,12 @@ BEGIN
     DECLARE @SuccessCnt INT;
     DECLARE @Severity INT;
     
-    SELECT ROW_NUMBER() OVER(ORDER BY Result DESC, Name ASC) No,Name [Test Case Name], Result
-      INTO #Tmp
+    SELECT ROW_NUMBER() OVER(ORDER BY Result DESC, Name ASC) No,Name [Test Case Name],
+           RIGHT(SPACE(7)+CAST(DATEDIFF(MILLISECOND,TestStartTime,TestEndTime) AS VARCHAR(7)),7) AS [Dur(ms)], Result
+      INTO #TestResultOutput
       FROM tSQLt.TestResult;
     
-    EXEC tSQLt.TableToText @Msg1 OUTPUT, '#Tmp', 'No';
+    EXEC tSQLt.TableToText @Msg1 OUTPUT, '#TestResultOutput', 'No';
 
     SELECT @Msg3 = Msg, 
            @IsSuccess = 1 - SIGN(FailCnt + ErrorCnt),
@@ -32,9 +34,9 @@ BEGIN
     
     
     EXEC tSQLt.Private_Print @Msg4,0;
-    EXEC tSQLt.Private_Print '+---------------------+',0;
-    EXEC tSQLt.Private_Print '|Test Execution Sumary|',0;
-    EXEC tSQLt.Private_Print '+---------------------+',0;
+    EXEC tSQLt.Private_Print '+----------------------+',0;
+    EXEC tSQLt.Private_Print '|Test Execution Summary|',0;
+    EXEC tSQLt.Private_Print '+----------------------+',0;
     EXEC tSQLt.Private_Print @Msg4,0;
     EXEC tSQLt.Private_Print @Msg1,0;
     EXEC tSQLt.Private_Print @Msg2,0;

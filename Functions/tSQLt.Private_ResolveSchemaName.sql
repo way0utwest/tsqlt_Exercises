@@ -1,3 +1,4 @@
+
 SET QUOTED_IDENTIFIER ON
 GO
 SET ANSI_NULLS ON
@@ -17,7 +18,7 @@ RETURN
         )
   SELECT schemaId, 
          quotedSchemaName,
-         CASE WHEN EXISTS(SELECT 1 FROM tSQLt.Private_TestClasses WHERE Private_TestClasses.schema_id = idsWithNames.schemaId)
+         CASE WHEN EXISTS(SELECT 1 FROM tSQLt.TestClasses WHERE TestClasses.SchemaId = idsWithNames.schemaId)
                THEN 1
               ELSE 0
          END AS isTestClass, 

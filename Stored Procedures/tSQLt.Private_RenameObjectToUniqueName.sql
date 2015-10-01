@@ -1,25 +1,27 @@
+
 SET QUOTED_IDENTIFIER ON
 GO
 SET ANSI_NULLS ON
 GO
-
-
+---Build+
 CREATE PROCEDURE [tSQLt].[Private_RenameObjectToUniqueName]
     @SchemaName NVARCHAR(MAX),
     @ObjectName NVARCHAR(MAX),
     @NewName NVARCHAR(MAX) = NULL OUTPUT
 AS
 BEGIN
-   DECLARE @FullName NVARCHAR(MAX);
-
-   SET @FullName = @SchemaName + '.' + @ObjectName;
-
-   SET @NewName=@ObjectName;  
-   WHILE OBJECT_ID(@SchemaName+'.'+@NewName) IS NOT NULL  
-       SELECT @NewName=left(left(@ObjectName,150)+REPLACE(CAST(NEWID() AS NVARCHAR(200)),'-',''),256)  
+   SET @NewName=tSQLt.Private::CreateUniqueObjectName();
 
    DECLARE @RenameCmd NVARCHAR(MAX);
-   SET @RenameCmd = 'EXEC sp_rename ''' + @FullName + ''', ''' + @NewName + ''';';
+   SET @RenameCmd = 'EXEC sp_rename ''' + 
+                          @SchemaName + '.' + @ObjectName + ''', ''' + 
+                          @NewName + ''';';
+   
+   EXEC tSQLt.Private_MarkObjectBeforeRename @SchemaName, @ObjectName;
+
+
    EXEC tSQLt.SuppressOutput @RenameCmd;
+
 END;
+---Build-
 GO

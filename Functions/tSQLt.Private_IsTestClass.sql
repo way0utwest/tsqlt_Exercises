@@ -1,3 +1,4 @@
+
 SET QUOTED_IDENTIFIER ON
 GO
 SET ANSI_NULLS ON
@@ -11,8 +12,8 @@ BEGIN
     CASE 
       WHEN EXISTS(
              SELECT 1 
-               FROM tSQLt.Private_TestClasses
-              WHERE schema_id = tSQLt.Private_GetSchemaId(@TestClassName)
+               FROM tSQLt.TestClasses
+              WHERE SchemaId = tSQLt.Private_GetSchemaId(@TestClassName)
             )
       THEN 1
       ELSE 0
